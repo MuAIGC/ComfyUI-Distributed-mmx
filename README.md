@@ -10,14 +10,6 @@
 - 前端 JS 直接从浏览器请求 `云商域名:8189`，浏览器无法连接 → UI 显示 Worker 离线（红点）
 - 实际上 Worker 后端运行正常，Master 也能通过 localhost 正常通信
 
-### 修改内容
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `api/proxy_routes.py` | 新建 | Master 后端通用代理路由，转发浏览器请求到本地 Worker |
-| `api/__init__.py` | 修改 | 注册 proxy_routes 路由 |
-| `web/urlUtils.js` | 修改 | 本地 Worker URL 改为走 Master 代理；修复 HTTPS 下相对路径被强加 `http://` 的问题 |
-
 ### 工作原理
 
 ```
