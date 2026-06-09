@@ -1,3 +1,49 @@
+## 本地修改说明 (Custom Modifications)
+
+> 以下为针对云商反向代理环境的本地适配修改，解决通过公网 URL 访问时 Worker 状态显示离线的问题。
+
+### 问题背景
+
+当 ComfyUI 通过云商提供的 HTTPS URL（如 `https://xxx-8188.com/`）访问时：
+- Master 运行在 8188 端口，通过云商代理暴露
+- Worker 运行在 8189/8190/8191... 端口，**未被云商代理暴露**
+- 前端 JS 直接从浏览器请求 `云商域名:8189`，浏览器无法连接 → UI 显示 Worker 离线（红点）
+- 实际上 Worker 后端运行正常，Master 也能通过 localhost 正常通信
+
+### 修改内容
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `api/proxy_routes.py` | 新建 | Master 后端通用代理路由，转发浏览器请求到本地 Worker |
+| `api/__init__.py` | 修改 | 注册 proxy_routes 路由 |
+| `web/urlUtils.js` | 修改 | 本地 Worker URL 改为走 Master 代理；修复 HTTPS 下相对路径被强加 `http://` 的问题 |
+
+### 工作原理
+
+```
+修复前:
+浏览器 → http://云商域名:8189/prompt → 连接失败（端口未暴露）
+
+修复后:
+浏览器 → https://云商域名/distributed/proxy/{worker_id}/prompt
+       → Master 8188 接收
+       → Master 转发到 localhost:8189/prompt
+       → 返回结果给浏览器
+```
+
+### 兼容性
+
+- 支持任意数量的本地 Worker（8189, 8190, 8191...）
+- 远程/云端 Worker 不受影响，仍使用直连方式
+- 本地直连（localhost:8188）场景同样正常工作
+
+### 修改日期
+
+2026-06-09
+
+---
+
+
 <div align="center">
 <img width="250" src="https://github.com/user-attachments/assets/533bb98d-0c4a-499f-9bca-5c937e361087" />
 <br><br>
@@ -217,51 +263,6 @@ Yes. Open the Distributed panel and uncheck the master toggle to run in orchestr
 <summary>Can I make this work with my Docker setup?</summary>
 Yes, it is compatible with Docker setups, but you will need to configure your Docker environment yourself. Unfortunately, assistance with Docker configuration is not provided.
 </details>
-
----
-
-## 本地修改说明 (Custom Modifications)
-
-> 以下为针对云商反向代理环境的本地适配修改，解决通过公网 URL 访问时 Worker 状态显示离线的问题。
-
-### 问题背景
-
-当 ComfyUI 通过云商提供的 HTTPS URL（如 `https://xxx-8188.nm2.spacehpc.com:3391/`）访问时：
-- Master 运行在 8188 端口，通过云商代理暴露
-- Worker 运行在 8189/8190/8191... 端口，**未被云商代理暴露**
-- 前端 JS 直接从浏览器请求 `云商域名:8189`，浏览器无法连接 → UI 显示 Worker 离线（红点）
-- 实际上 Worker 后端运行正常，Master 也能通过 localhost 正常通信
-
-### 修改内容
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `api/proxy_routes.py` | 新建 | Master 后端通用代理路由，转发浏览器请求到本地 Worker |
-| `api/__init__.py` | 修改 | 注册 proxy_routes 路由 |
-| `web/urlUtils.js` | 修改 | 本地 Worker URL 改为走 Master 代理；修复 HTTPS 下相对路径被强加 `http://` 的问题 |
-
-### 工作原理
-
-```
-修复前:
-浏览器 → http://云商域名:8189/prompt → 连接失败（端口未暴露）
-
-修复后:
-浏览器 → https://云商域名/distributed/proxy/{worker_id}/prompt
-       → Master 8188 接收
-       → Master 转发到 localhost:8189/prompt
-       → 返回结果给浏览器
-```
-
-### 兼容性
-
-- 支持任意数量的本地 Worker（8189, 8190, 8191...）
-- 远程/云端 Worker 不受影响，仍使用直连方式
-- 本地直连（localhost:8188）场景同样正常工作
-
-### 修改日期
-
-2026-06-09
 
 ---
 
