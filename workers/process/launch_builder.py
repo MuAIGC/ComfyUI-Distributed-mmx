@@ -104,6 +104,12 @@ class LaunchCommandBuilder:
             if cuda_device is not None:
                 cmd.extend(["--cuda-device", str(cuda_device)])
 
+            # Use separate database for each worker to avoid lock conflicts
+            worker_id = worker_config.get("id", "unknown")
+            worker_short = worker_id[:8]
+            db_path = os.path.join(comfy_root, "user", f"comfyui_worker_{worker_short}.db")
+            cmd.extend(["--database-url", f"sqlite:///{db_path}"])
+
             current_args = self._get_runtime_args()
             current_cors = getattr(current_args, "enable_cors_header", None) if current_args else None
             cmd.append("--enable-cors-header")
