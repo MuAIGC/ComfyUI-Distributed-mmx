@@ -99,6 +99,11 @@ class LaunchCommandBuilder:
             cmd.extend(self._build_runtime_launch_args())
             cmd.extend(["--port", str(worker_config["port"])])
 
+            # Add CUDA device if specified
+            cuda_device = worker_config.get("cuda_device")
+            if cuda_device is not None:
+                cmd.extend(["--cuda-device", str(cuda_device)])
+
             current_args = self._get_runtime_args()
             current_cors = getattr(current_args, "enable_cors_header", None) if current_args else None
             cmd.append("--enable-cors-header")
