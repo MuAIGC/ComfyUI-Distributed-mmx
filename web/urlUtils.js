@@ -8,6 +8,11 @@ export function normalizeWorkerUrl(rawUrl) {
         return "";
     }
 
+    // Pass through relative paths (start with /) unchanged - they resolve against page origin
+    if (trimmed.startsWith("/")) {
+        return trimmed.replace(/\/$/, "");
+    }
+
     const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
 
     try {
@@ -41,6 +46,19 @@ export function parseHostInput(value) {
 }
 
 export function buildWorkerUrl(worker, endpoint = "", windowLocation = window.location) {
+    // Local workers: route through master proxy (browser cannot reach worker ports
+    // directly when ComfyUI is accessed via cloud URL / reverse proxy)
+    const workerType = String(worker?.type || "").toLowerCase();
+    const isLocal = workerType === "local" || (!workerType && !worker?.host);
+
+    if (isLocal && worker?.id) {
+        const proxyBase = `/distributed/proxy/${worker.id}`;
+        if (endpoint) {
+            return `${proxyBase}/${endpoint.replace(/^\//, "")}`;
+        }
+        return proxyBase;
+    }
+
     const parsed = parseHostInput(worker?.host || windowLocation.hostname);
     const host = parsed.host || windowLocation.hostname;
     const resolvedPort = parsed.port || worker?.port || 8188;
